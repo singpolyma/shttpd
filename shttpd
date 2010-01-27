@@ -51,7 +51,7 @@ fi
 # Run server loop
 pipehack="`mktemp`"
 rm "$pipehack" && mkfifo "$pipehack"
-:;while [ $? -eq 0 ]; do
+:;while [ $? -eq 0 -o $? -eq 141 ]; do
 	$NC -vvl "$SERVER_PORT" < "$pipehack" | (
 		read REQUEST_METHOD path SERVER_PROTOCOL
 
