@@ -106,12 +106,18 @@ else
 		echo "WARNING: nc has no -q, connections may not close properly." 1>&2
 		NC="nc"
 	fi
+	# Detect broken -p
+	if nc -h 2>&1 | grep -- -p | grep remote > /dev/null; then
+		NC="$NC -vvl"
+	else
+		NC="$NC -vvlp"
+	fi
 
 	# Run server loop
 	pipehack="`mktemp`"
 	rm "$pipehack" && mkfifo "$pipehack"
 	:;while [ $? -eq 0 -o $? -eq 141 ]; do
-		$NC -vvl "$SERVER_PORT" < "$pipehack" | ( process_request ) > "$pipehack"
+		$NC "$SERVER_PORT" < "$pipehack" | ( process_request ) > "$pipehack"
 	done
 
 	# Cleanup
