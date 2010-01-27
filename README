@@ -1,0 +1,32 @@
+= shttpd =
+
+shttpd is an HTTP server written entirely in POSIX shell script.
+
+== Why? ==
+
+Because you can!  Also, there are some real advantages:
+
+* Compact, understandable codebase
+* Trivial to configure/extend
+* Run from anywhere and just start serving!
+* Get lots of nice debug output in your terminal
+
+== Running ==
+
+To start an instance of the server just run:
+
+./shttpd -p <port> -C <document root> -m modules/dirlist.mod:modules/static.mod
+
+You can list whatever modules you want to load (order matters!) but this will get you started.
+
+== Extending ==
+
+Writing modules is easy!  Look a the ones in the modules directory for examples.
+
+Basically, you write some shell code that gets sourced into the server, and manipulate the environment according to your needs.
+
+== Deploying ==
+
+Each instance of the server can only handle one connection, so you will need some other server to round-robin proxy.
+
+In the future there may be a version that supports living behing inetd.
