@@ -8,8 +8,61 @@ original_pwd="`pwd`"
 readonly original_pwd
 export original_pwd
 
+process_request() {
+	read REQUEST_METHOD path SERVER_PROTOCOL
+
+	# Read request headers
+	z="123"; while [ ${#z} -gt 2 ]; do
+		read z
+		if [ ${#z} -gt 2 ]; then
+			var=HTTP_`echo "$z" | cut -d":" -f1 | tr [:lower:] [:upper:] | tr - _`
+			eval "$var=\"`echo "$z" | cut -d" " -f2-`\""
+			export $var
+		fi
+	done
+
+	# Chop off query string
+	QUERY_STRING="`echo "$path" | cut -d"?" -f2-`"
+	if [ "$QUERY_STRING" = "$path" ]; then
+		unset QUERY_STRING
+	else
+		path="`echo "$path" | cut -d"?" -f1`"
+	fi
+
+	urldecode() {
+		i=1
+		while [ $i -le ${#1} ]; do
+			c="`echo "$1" | cut -c$i`"
+			if [ "x$c" = "x%" ]; then
+				printf "%b" "\0$(echo "ibase=16;obase=8;$(echo "$1" | cut -c$((i+1))-$((i+2)))" | bc)"
+				i=$((i+3))
+			else
+				printf "%s" "$c"
+				i=$((i+1))
+			fi
+		done
+	}
+
+	path="`urldecode "$path"`" # URLdecode the path
+
+	path="`echo "$path" | sed -e "s/^[\/\.]*//" | sed -e"s/[\/\.]\{2,\}//"`" # Filter path for security
+	PATH_TRANSLATED="`pwd`/$path" # Get absolute path
+
+	# Include modules
+	if [ -n "$modules" ]; then
+		IFS=":"
+		for m in $modules; do
+			. "$original_pwd/$m"
+		done
+	fi
+
+	# If we got this far, none of the modules can handle this path
+	printf "%b" "HTTP/1.1 404 Not Found\r\n"
+	printf "%b" "\r\n404 Not Found"
+}
+
 # Process switches
-while getopts p:h:m:C: c; do
+while getopts p:h:m:C:i c; do
 	case $c in
 		p)
 			SERVER_PORT="$OPTARG"
@@ -22,6 +75,9 @@ while getopts p:h:m:C: c; do
 		;;
 		C)
 			cd "$OPTARG"
+		;;
+		i)
+			inetd_mode=1
 		;;
 		*)
 			echo "Usage: $0 [-p port] [-h host] [-m modules] [-C document root]"
@@ -40,71 +96,24 @@ if [ -z "$HOSTNAME" ]; then
 fi
 export SERVER_PORT HOSTNAME modules
 
-# Detect GNU nc
-if nc -h 2>&1 | grep -- -q > /dev/null; then
-	NC="nc -q0"
+if [ -n "$inetd_mode" ]; then
+	process_request
 else
-	echo "WARNING: nc has no -q, connections may not close properly." 1>&2
-	NC="nc"
+	# Detect -q
+	if nc -h 2>&1 | grep -- -q > /dev/null; then
+		NC="nc -q0"
+	else
+		echo "WARNING: nc has no -q, connections may not close properly." 1>&2
+		NC="nc"
+	fi
+
+	# Run server loop
+	pipehack="`mktemp`"
+	rm "$pipehack" && mkfifo "$pipehack"
+	:;while [ $? -eq 0 -o $? -eq 141 ]; do
+		$NC -vvl "$SERVER_PORT" < "$pipehack" | ( process_request ) > "$pipehack"
+	done
+
+	# Cleanup
+	rm -f "$pipehack"
 fi
-
-# Run server loop
-pipehack="`mktemp`"
-rm "$pipehack" && mkfifo "$pipehack"
-:;while [ $? -eq 0 -o $? -eq 141 ]; do
-	$NC -vvl "$SERVER_PORT" < "$pipehack" | (
-		read REQUEST_METHOD path SERVER_PROTOCOL
-
-		# Read request headers
-		z="123"; while [ ${#z} -gt 2 ]; do
-			read z
-			if [ ${#z} -gt 2 ]; then
-				var=HTTP_`echo "$z" | cut -d":" -f1 | tr [:lower:] [:upper:] | tr - _`
-				eval "$var=\"`echo "$z" | cut -d" " -f2-`\""
-				export $var
-			fi
-		done
-
-		# Chop off query string
-		QUERY_STRING="`echo "$path" | cut -d"?" -f2-`"
-		if [ "$QUERY_STRING" = "$path" ]; then
-			unset QUERY_STRING
-		else
-			path="`echo "$path" | cut -d"?" -f1`"
-		fi
-
-		urldecode() {
-			i=1
-			while [ $i -le ${#1} ]; do
-				c="`echo "$1" | cut -c$i`"
-				if [ "x$c" = "x%" ]; then
-					printf "%b" "\0$(echo "ibase=16;obase=8;$(echo "$1" | cut -c$((i+1))-$((i+2)))" | bc)"
-					i=$((i+3))
-				else
-					printf "%s" "$c"
-					i=$((i+1))
-				fi
-			done
-		}
-
-		path="`urldecode "$path"`" # URLdecode the path
-
-		path="`echo "$path" | sed -e "s/^[\/\.]*//" | sed -e"s/[\/\.]\{2,\}//"`" # Filter path for security
-		PATH_TRANSLATED="`pwd`/$path" # Get absolute path
-
-		# Include modules
-		if [ -n "$modules" ]; then
-			IFS=":"
-			for m in $modules; do
-				. "$original_pwd/$m"
-			done
-		fi
-
-		# If we got this far, none of the modules can handle this path
-		printf "%b" "HTTP/1.1 404 Not Found\r\n"
-		printf "%b" "\r\n404 Not Found"
-	) > "$pipehack"
-done
-
-# Cleanup
-rm -f "$pipehack"

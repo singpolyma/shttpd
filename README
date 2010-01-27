@@ -29,4 +29,4 @@ Basically, you write some shell code that gets sourced into the server, and mani
 
 Each instance of the server can only handle one connection, so you will need some other server to round-robin proxy.
 
-In the future there may be a version that supports living behing inetd.
+You may also configure inetd to call the server with -i
