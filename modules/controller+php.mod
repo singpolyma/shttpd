@@ -16,7 +16,7 @@ if [ -x "controller/$controller" ]; then
 		if [ -r "views/$controller/$action.php" ]; then
 			REDIRECT_STATUS="200"
 			export REDIRECT_STATUS CONTROLLER_VARS
-			script="`mktemp shttpd$$.php.XXXXXX`"
+			script="`mktemp -t shttpd$$.php.XXXXXX`"
 			echo "<?php 
 				if(\$_SERVER['CONTROLLER_VARS']{0} == '{')
 					extract(json_decode(\$_SERVER['CONTROLLER_VARS'], true));
