@@ -1,5 +1,7 @@
 # Add directory listing support to shttpd
 
+ls_switches="-oghF"
+
 if [ -d "$PATH_TRANSLATED" ]; then
 	if [ -n "$path" -a "`echo "$path" | cut -c${#path}-`" != / ]; then
 		printf "%b" "HTTP/1.1 301 Redirect\r\n"
@@ -17,7 +19,7 @@ if [ -d "$PATH_TRANSLATED" ]; then
 		else
 			append=
 		fi
-		echo "<li><a href=\"`basename $FILE`$append\">$(cd "`dirname "$FILE"`"; ls -oghd "`basename $FILE`")</a></li>"
+		echo "<li><a href=\"`basename $FILE`$append\">$(cd "`dirname "$FILE"`"; ls $ls_switches -d "`basename $FILE`")</a></li>"
 	done
 	echo "</ul>"
 	exit
