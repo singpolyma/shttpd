@@ -114,7 +114,7 @@ else
 	fi
 
 	# Run server loop
-	pipehack="`mktemp`"
+	pipehack="`mktemp shttpd$$.XXXXXX`"
 	rm "$pipehack" && mkfifo "$pipehack"
 	:;while [ $? -eq 0 -o $? -eq 141 ]; do
 		$NC "$SERVER_PORT" < "$pipehack" | ( process_request ) > "$pipehack"
