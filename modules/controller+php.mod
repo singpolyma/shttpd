@@ -10,8 +10,8 @@ if [ -z "$action" -o "$action" = "$controller" ]; then
 	action=index
 fi
 
-if [ -x "controller/$controller" ]; then
-	CONTROLLER_VARS="`call_cgi -n "controller/$controller" "$action"`"
+if [ -x "controllers/$controller" ]; then
+	CONTROLLER_VARS="`call_cgi -n "controllers/$controller" "$action"`"
 	if [ $? -eq 0 ]; then
 		if [ -r "views/$controller/$action.php" ]; then
 			REDIRECT_STATUS="200"
