@@ -7,7 +7,7 @@ if [ -z "$controller" ]; then
 	controller=main
 fi
 if [ -z "$action" -o "$action" = "$controller" ]; then
-	action=main
+	action=index
 fi
 
 if [ -x "controller/$controller" ]; then
