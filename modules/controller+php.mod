@@ -17,12 +17,10 @@ if [ -x "controllers/$controller" ]; then
 			REDIRECT_STATUS="200"
 			export REDIRECT_STATUS CONTROLLER_VARS
 			script="`mktemp -t shttpd$$.php.XXXXXX`"
-			echo "<?php 
-				if(\$_SERVER['CONTROLLER_VARS']{0} == '{')
-					extract(json_decode(\$_SERVER['CONTROLLER_VARS'], true));
-				else
-					parse_str(\$_SERVER['CONTROLLER_VARS']);
-				?>" > "$script"
+			echo "<?php
+				extract(json_decode(\$_SERVER['CONTROLLER_VARS'], true));
+				function h(\$s) { return htmlspecialchars(\$s); }
+			?>" > "$script"
 			cat "views/$controller/$action.php" >> "$script"
 			PATH_TRANSLATED="$script"
 			call_cgi php-cgi "$script"
