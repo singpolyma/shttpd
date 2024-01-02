@@ -8,7 +8,7 @@ if [ -f "$PATH_TRANSLATED" -a -r "$PATH_TRANSLATED" ]; then
 	if type md5sum > /dev/null 2>&1; then
 		printf "%b" "ETag: \"`md5sum < "$PATH_TRANSLATED"`\"\r\n"
 	elif type md5 > /dev/null 2>&1; then
-		printf "%b" "ETag: \"`md5sum -q "$PATH_TRANSLATED"`\"\r\n"
+		printf "%b" "ETag: \"`md5 -q "$PATH_TRANSLATED"`\"\r\n"
 	fi
 	printf "%b" "\r\n"
 	cat "$PATH_TRANSLATED"
